@@ -1,0 +1,136 @@
+# Busqueda de los mejores Hiperparametros para los metodos MLP, DT y SVM en Batallas Individuales
+
+
+import numpy as np
+
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
+from sklearn.model_selection import GridSearchCV
+from sklearn.utils import shuffle
+
+from sklearn.neural_network import MLPClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+
+
+# Lectura de Datos
+tabla_combates_individuales = np.loadtxt('combates_indv_completo.csv',delimiter=',')
+
+X_indviduales = tabla_combates_individuales[:,:-1]
+Y_indviduales = tabla_combates_individuales[:,-1]
+
+X_indv_train, X_indv_test, Y_indv_train, Y_indv_test = train_test_split(X_indviduales, Y_indviduales, test_size=0.25, random_state=42)
+
+#invertimos y concatenamos los datos del train
+# [0:24] primer pokemon, [24:48] segundo pokemon
+X_indv_train_invertido= np.zeros(X_indv_train.shape)
+
+X_indv_train_invertido[:,0:24] = X_indv_train[:,24:48]
+X_indv_train_invertido[:,24:48] = X_indv_train[:,0:24]
+
+X_indv_train= np.concatenate((X_indv_train,X_indv_train_invertido),axis=0)#concatena en por filas
+
+
+Y_indv_train_invertido= 1 - Y_indv_train # si Y=0 queda 1 y si Y=1 queda 0
+Y_indv_train = np.concatenate((Y_indv_train,Y_indv_train_invertido),axis=0)
+
+X_indv_train, Y_indv_train = shuffle(X_indv_train, Y_indv_train, random_state=42) #desordenamos los datos
+
+fk = KFold(n_splits=3)
+
+############################################################################
+######################## Busqueda usando gridsearch ########################
+
+parametros = [
+    {
+        'kernel': ['poly'],
+        'C': [0.01,0.1,5],
+        'gamma': [0.1, 0.5, 0.01],
+        'degree': [2, 3]
+    },
+    {
+        'kernel': ['sigmoid', 'rbf'],
+        'C': [0.01,0.1,5],
+        'gamma': [0.1, 0.5, 0.01],
+    }
+]
+
+busqueda = GridSearchCV(
+    estimator=SVC(),
+    param_grid=parametros,
+    cv=fk,
+    scoring='accuracy',
+    n_jobs=-1,
+    verbose=2
+)
+
+busqueda.fit(X_indv_train, Y_indv_train)
+
+print("Mejores hiperparámetros:")
+print(busqueda.best_params_)
+
+print("Mejor accuracy:")
+print(busqueda.best_score_)
+
+######################## busqueda en arbol ########################
+######################## Arbol de decisión ########################
+parametros = [
+    {
+        'criterion':['gini','entropy', 'log_loss'],
+        'min_impurity_decrease': [0.0,0.01,0.1,0.05],
+        
+    }
+]
+
+busqueda = GridSearchCV(
+    estimator=DecisionTreeClassifier(),
+    param_grid=parametros,
+    cv=fk,
+    scoring='accuracy',
+    n_jobs=-1,
+    verbose=2
+)
+
+busqueda.fit(X_indv_train, Y_indv_train)
+
+print("Mejores hiperparámetros:")
+print(busqueda.best_params_)
+
+print("Mejor accuracy:")
+print(busqueda.best_score_)
+
+##################### MUlticapa ############################
+################### Busqueda de hiperparametros en MLPC ################################
+
+parametros = [
+    {
+        'hidden_layer_sizes': [(10,10),(10,20),(10,40),(10,80),(10,100),(10,160),
+                               (20,10),(20,20),(20,40),(20,80),(20,100),(20,160),
+                               (40,10),(40,20),(40,40),(40,80),(40,100),(40,160),
+                               (80,10),(80,20),(80,40),(80,80),(80,100),(80,160),
+                               (100,10),(100,20),(100,40),(100,80),(100,100),(100,160)],
+        'activation': ['relu','logistic'],
+        'solver':['adam','sgd'],
+        'learning_rate_init':[0.01,0.1],
+        'learning_rate':['adaptive'],
+        'max_iter':[200],
+        'n_iter_no_change':[100] 
+    }
+]
+
+busqueda = GridSearchCV(
+    estimator=MLPClassifier(),
+    param_grid=parametros,
+    cv=fk,
+    scoring='accuracy',
+    n_jobs=-1,
+    verbose=2
+)
+
+busqueda.fit(X_indv_train, Y_indv_train)
+
+print("Mejores hiperparámetros:")
+print(busqueda.best_params_)
+
+print("Mejor accuracy:")
+print(busqueda.best_score_)

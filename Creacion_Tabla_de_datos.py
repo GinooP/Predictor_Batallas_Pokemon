@@ -1,11 +1,15 @@
+# Indexación de datasets + creación de tablas de datos que se 
+# usarán para entrenar los modelos de aprendizaje automático
+
+
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 import pandas as pd
 
-tabla_pokemon = pd.read_csv('TP_Creativo/pokemon.csv')
-tabla_combates_indv = pd.read_csv('TP_Creativo/combats.csv')
-tabla_equipos = np.loadtxt('TP_Creativo/pokemon_id_each_team.csv',delimiter=',',skiprows=1)
-tabla_team_combats = np.loadtxt('TP_Creativo/team_combat.csv',delimiter=',',skiprows=1)
+tabla_pokemon = pd.read_csv('pokemon.csv')
+tabla_combates_indv = pd.read_csv('combats.csv')
+tabla_equipos = np.loadtxt('pokemon_id_each_team.csv',delimiter=',',skiprows=1)
+tabla_team_combats = np.loadtxt('team_combat.csv',delimiter=',',skiprows=1)
 
 tipos = pd.concat([
     tabla_pokemon['Type 1'],
@@ -86,6 +90,6 @@ tabla_combates_grupales = np.concatenate((tabla_combates_equipos_stats,tabla_tea
 
 np.random.default_rng().shuffle(tabla_combates_grupales)
 
-np.savetxt('TP_Creativo/combates_indv_completo.csv', tabla_combates_individuales, delimiter=',', fmt='%.10f')
-np.savetxt('TP_Creativo/combates_grup_completo.csv', tabla_combates_grupales, delimiter=',', fmt='%.10f')
+np.savetxt('combates_indv_completo.csv', tabla_combates_individuales, delimiter=',', fmt='%.10f')
+np.savetxt('combates_grup_completo.csv', tabla_combates_grupales, delimiter=',', fmt='%.10f')
 
