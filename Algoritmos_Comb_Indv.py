@@ -3,6 +3,7 @@
 
 import numpy as np
 import time as tm
+import matriz_de_confusion as mc
 
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
@@ -56,7 +57,7 @@ for i,(index_train,index_test) in enumerate(fk.split(X_indv_train)):
     # --- 1. Perceptrón Multicapa (MLP) ---
     tini = tm.perf_counter()
     modelo = MLPClassifier(hidden_layer_sizes=capas,activation='logistic',solver='sgd',learning_rate_init=eta,max_iter=epocas,
-                            tol=tol, verbose=False) #para que no muestre en consola todo el proceso
+                            tol=tol, verbose=False, n_iter_no_change=epocas) #para que no muestre en consola todo el proceso
     
     modelo.fit(X_indv_train[index_train],Y_indv_train[index_train])
     vector_aciertos_MLP.append(modelo.score(X_indv_train[index_test],Y_indv_train[index_test]))
@@ -110,7 +111,7 @@ activation = 'relu'
 eta = 0.01
 epocas = 1000
 solver = 'sgd'
-n_iter_no_change = 10
+n_iter_no_change = epocas
 mlp = MLPClassifier(hidden_layer_sizes=capas,activation=activation,solver=solver,learning_rate='adaptive',learning_rate_init=eta,max_iter=epocas, n_iter_no_change=n_iter_no_change)
 mlp.fit(X_indv_train,Y_indv_train)
 print(mlp.score(X_indv_test,Y_indv_test))
@@ -124,3 +125,107 @@ print(svm.score(X_indv_test,Y_indv_test))
 dt = DecisionTreeClassifier(criterion='gini', min_impurity_decrease=0.0)
 dt.fit(X_indv_train, Y_indv_train)
 print(dt.score(X_indv_test,Y_indv_test))
+
+
+
+
+
+
+
+
+
+###################### Determinar las matrices de confuncion #########################
+
+# MLP: capas = (80,10), activation=”relu”, learning rate=”adaptive”, learning rate init=0.01, maxit=1000, solver=”sgd”, n iter no change=10
+# SVM: ’C’ = 15, gamma = 0.05, kernel = ”rbf”
+# DT: criterion=”gini”, min impurity decrease=0.0
+
+multicapa= MLPClassifier(hidden_layer_sizes= (80,10), activation='relu', learning_rate='adaptive', learning_rate_init=0.01, max_iter=1000, solver='sgd', n_iter_no_change=10)
+
+clasificador_SVC=SVC(C= 15,gamma=0.05,kernel='rbf')
+
+tree = DecisionTreeClassifier(criterion='gini',min_impurity_decrease=0)
+
+multicapa.fit(X_indv_train,Y_indv_train)
+clasificador_SVC.fit(X_indv_train,Y_indv_train)
+tree.fit(X_indv_train,Y_indv_train)
+
+
+#------------- multicapa -----------------------------------
+Y_predicha=multicapa.predict(X_indv_test)#obtenemos los valores predichos para el test
+
+matriz_confucion_MLP= mc.obtener_matriz_de_confusion(Y_indv_test,Y_predicha)
+
+sensibilidad_eq1= matriz_confucion_MLP[0,0]/(matriz_confucion_MLP[0,0]+matriz_confucion_MLP[0,1])
+precision_eq1= matriz_confucion_MLP[0,0]/(matriz_confucion_MLP[0,0] + matriz_confucion_MLP[1,0])
+F1_eq1= 2*sensibilidad_eq1*precision_eq1/(sensibilidad_eq1 + precision_eq1)
+
+sensibilidad_eq2= matriz_confucion_MLP[1,1]/(matriz_confucion_MLP[1,1] + matriz_confucion_MLP[1,0])
+precision_eq2= matriz_confucion_MLP[1,1]/(matriz_confucion_MLP[1,1] + matriz_confucion_MLP[0,1])
+F1_eq2= 2*sensibilidad_eq2*precision_eq2/(sensibilidad_eq2 + precision_eq2)
+
+print("--------------- multicapa grupal mejores parametros -----------------------")
+print("-------- matriz de confusión")
+print(matriz_confucion_MLP)
+print(f'ratio_aciertos={multicapa.score(X_indv_test,Y_indv_test)}')
+print("-------medidas de desempeño haciendo foco en el equipo 1")
+print(f"sensibilidad equipo 1 = {sensibilidad_eq1}")
+print(f"precision equipo 1 = {precision_eq1}")
+print(f"F1 equipo 1 = {F1_eq1}")
+print(f"------medidas de desempeño haciendo foco en equipo 2")
+print(f"sensibilidad equipo 2 = {sensibilidad_eq2}")
+print(f"precision equipo 2 = {precision_eq2}")
+print(f"F1 equipo 2 = {F1_eq2}")
+
+
+# #------------ SVM ------------------------------------------
+Y_predicha=clasificador_SVC.predict(X_indv_test)#obtenemos los valores predichos para el test
+
+matriz_confucion_SVM= mc.obtener_matriz_de_confusion(Y_indv_test,Y_predicha)
+
+sensibilidad_eq1= matriz_confucion_SVM[0,0]/(matriz_confucion_SVM[0,0]+matriz_confucion_SVM[0,1])
+precision_eq1= matriz_confucion_SVM[0,0]/(matriz_confucion_SVM[0,0] + matriz_confucion_SVM[1,0])
+F1_eq1= 2*sensibilidad_eq1*precision_eq1/(sensibilidad_eq1 + precision_eq1)
+
+sensibilidad_eq2= matriz_confucion_SVM[1,1]/(matriz_confucion_SVM[1,1] + matriz_confucion_SVM[1,0])
+precision_eq2= matriz_confucion_SVM[1,1]/(matriz_confucion_SVM[1,1] + matriz_confucion_SVM[0,1])
+F1_eq2= 2*sensibilidad_eq2*precision_eq2/(sensibilidad_eq2 + precision_eq2)
+
+print("--------------- SVM grupal mejores parametros -----------------------")
+print("-------- matriz de confusión")
+print(matriz_confucion_SVM)
+print(f'ratio_aciertos={clasificador_SVC.score(X_indv_test,Y_indv_test)}')
+print("-------medidas de desempeño haciendo foco en el equipo 1")
+print(f"sensibilidad equipo 1 = {sensibilidad_eq1}")
+print(f"precision equipo 1 = {precision_eq1}")
+print(f"F1 equipo 1 = {F1_eq1}")
+print(f"------medidas de desempeño haciendo foco en equipo 2")
+print(f"sensibilidad equipo 2 = {sensibilidad_eq2}")
+print(f"precision equipo 2 = {precision_eq2}")
+print(f"F1 equipo 2 = {F1_eq2}")
+# #------------ Árbol ----------------------------------------
+Y_predicha=tree.predict(X_indv_test)#obtenemos los valores predichos para el test
+
+matriz_confucion_tree= mc.obtener_matriz_de_confusion(Y_indv_test,Y_predicha)
+
+sensibilidad_eq1= matriz_confucion_tree[0,0]/(matriz_confucion_tree[0,0]+matriz_confucion_tree[0,1])
+precision_eq1= matriz_confucion_tree[0,0]/(matriz_confucion_tree[0,0] + matriz_confucion_tree[1,0])
+F1_eq1= 2*sensibilidad_eq1*precision_eq1/(sensibilidad_eq1 + precision_eq1)
+
+sensibilidad_eq2= matriz_confucion_tree[1,1]/(matriz_confucion_tree[1,1] + matriz_confucion_tree[1,0])
+precision_eq2= matriz_confucion_tree[1,1]/(matriz_confucion_tree[1,1] + matriz_confucion_tree[0,1])
+F1_eq2= 2*sensibilidad_eq2*precision_eq2/(sensibilidad_eq2 + precision_eq2)
+
+print("--------------- Árbol grupal mejores parametros -----------------------")
+print("-------- matriz de confusión")
+print(matriz_confucion_tree)
+print(f'ratio_aciertos={tree.score(X_indv_test,Y_indv_test)}')
+print("-------medidas de desempeño haciendo foco en el equipo 1")
+print(f"sensibilidad equipo 1 = {sensibilidad_eq1}")
+print(f"precision equipo 1 = {precision_eq1}")
+print(f"F1 equipo 1 = {F1_eq1}")
+print(f"------medidas de desempeño haciendo foco en equipo 2")
+print(f"sensibilidad equipo 2 = {sensibilidad_eq2}")
+print(f"precision equipo 2 = {precision_eq2}")
+print(f"F1 equipo 2 = {F1_eq2}")
+
